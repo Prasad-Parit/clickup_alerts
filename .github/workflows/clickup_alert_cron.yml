@@ -6,26 +6,28 @@ on:
   workflow_dispatch:      # Optional: allows manual trigger from GitHub UI
 
 jobs:
-  clickup-alert:
-    name: Run ClickUp Alert Script
-    runs-on: ubuntu-latest # Use GitHub-hosted Ubuntu Linux virtual machine
-
+  run-alert-script:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.x'   # Use the latest version of Python 3
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
-          pip install -r app/clickup_open_task_alerts/requirements.txt
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+       
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1  # Change if your secret is in another region
 
-      - name: Run clickup_alert_app.py
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          CLICKUP_API_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
-        run: |
-          python app/clickup_open_task_alerts/alerts_app.py
+      - name: Run alert script
+        run: python your_script.py

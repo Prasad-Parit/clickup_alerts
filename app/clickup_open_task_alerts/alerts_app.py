@@ -5,9 +5,24 @@ import os
 from dotenv import load_dotenv
 import slack
 import requests
+import boto3
+import json
 
-# Load environment variables from a .env file (Slack token, ClickUp API token, etc.)
-load_dotenv()
+def get_secret(secret_name, region_name="ap-south-1"):  # Change region if needed
+    """
+    Fetch a secret from AWS Secrets Manager.
+    Assumes that the environment has permission to access Secrets Manager.
+    """
+    session = boto3.session.Session()
+    client = session.client(service_name="secretsmanager", region_name=region_name)
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except Exception as e:
+        raise Exception(f"Unable to retrieve secret {secret_name}: {e}")
+
+    secret = get_secret_value_response.get("SecretString")
+    return json.loads(secret)
 
 # Set up headers for ClickUp API requests
 HEADERS = {
@@ -15,9 +30,13 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
+secrets = get_secret("clickup-slack-prod")  # Make sure the secret name matches
+
+CLICKUP_API_TOKEN = secrets["CLICKUP_API_TOKEN"]
+SLACK_BOT_TOKEN = secrets["SLACK_BOT_TOKEN"]
+
 # Initialize the Slack WebClient with the bot token
-BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
-slack_client = slack.WebClient(token=BOT_TOKEN)
+slack_client = slack.WebClient(token=SLACK_BOT_TOKEN)
 
 #Set maximum character length for each Slack message
 MAX_CHAR = 2800
