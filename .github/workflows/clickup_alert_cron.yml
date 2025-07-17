@@ -1,0 +1,31 @@
+name: ClickUp Alerts Weekly Cron
+
+on:
+  schedule:
+    - cron: "0 12 * * 4"  # Run on Every Thursday at 12:00 UTC
+  workflow_dispatch:      # Optional: allows manual trigger from GitHub UI
+
+jobs:
+  clickup-alert:
+    name: Run ClickUp Alert Script
+    runs-on: ubuntu-latest # Use GitHub-hosted Ubuntu Linux virtual machine
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'   # Use the latest version of Python 3
+
+      - name: Install dependencies
+        run: |
+          pip install -r app/clickup_open_task_alerts/requirements.txt
+
+      - name: Run clickup_alert_app.py
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          CLICKUP_API_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
+        run: |
+          python app/clickup_open_task_alerts/alerts_app.py
