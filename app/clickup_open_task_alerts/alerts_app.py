@@ -7,33 +7,31 @@ import slack
 import requests
 import boto3
 import json
+import logging
+from botocore.exceptions import ClientError
 
-def get_secret(secret_name, region_name="ap-south-1"):  # Change region if needed
-    """
-    Fetch a secret from AWS Secrets Manager.
-    Assumes that the environment has permission to access Secrets Manager.
-    """
-    session = boto3.session.Session()
-    client = session.client(service_name="secretsmanager", region_name=region_name)
-
+def get_secret(secret_name, region_name="ap-south-1"):
     try:
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-    except Exception as e:
-        raise Exception(f"Unable to retrieve secret {secret_name}: {e}")
+        client = boto3.session.Session().client(
+            service_name='secretsmanager', region_name=region_name
+        )
+        secret_value = client.get_secret_value(SecretId=secret_name)
+        return json.loads(secret_value['SecretString'])
+    except ClientError as e:
+        logging.exception(f"Failed to get secret {secret_name}: {e}")
+        raise
 
-    secret = get_secret_value_response.get("SecretString")
-    return json.loads(secret)
+secrets = get_secret("my_clickup_slack_secrets")
+
+CLICKUP_API_TOKEN = secrets["CLICKUP_API_TOKEN"]
+SLACK_BOT_TOKEN = secrets["SLACK_BOT_TOKEN"]
+
 
 # Set up headers for ClickUp API requests
 HEADERS = {
     "Authorization": os.getenv("CLICKUP_API_TOKEN"),
     "Content-Type": "application/json"
 }
-
-secrets = get_secret("clickup-slack-prod")  # Make sure the secret name matches
-
-CLICKUP_API_TOKEN = secrets["CLICKUP_API_TOKEN"]
-SLACK_BOT_TOKEN = secrets["SLACK_BOT_TOKEN"]
 
 # Initialize the Slack WebClient with the bot token
 slack_client = slack.WebClient(token=SLACK_BOT_TOKEN)
